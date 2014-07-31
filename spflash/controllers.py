@@ -1,6 +1,8 @@
 from flask import Flask, Response, abort, request, render_template
+import os
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
+hostname = os.environ.get('HOSTNAME', 'localhost:5455')
 drivers = {}
 
 try:
@@ -44,7 +46,7 @@ def get_driver(version):
         drivers[version] = webdriver.PhantomJS()
 
         print "Loading host page..."
-        drivers[version].get("http://localhost:5455/%s/host" % version)
+        drivers[version].get("http://%s/%s/host" % (hostname, version))
 
         print "Waiting for page to finish loading..."
         WebDriverWait(drivers[version], 10).until(EC.presence_of_element_located((By.ID, "SPFBIn_2072_player")))
