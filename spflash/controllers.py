@@ -26,7 +26,7 @@ def get(version):
     task = cel.send_task('spflash.get', (version, ping), expires=10)
 
     try:
-        pong = task.get(timeout=5)
+        pong = task.get(timeout=6)
         log.debug('Ping: "%s", Pong: "%s"', ping, pong)
     except TimeoutError:
         abort(503)
