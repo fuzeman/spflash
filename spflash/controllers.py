@@ -23,7 +23,7 @@ def get(version):
         abort(400)
 
     log.debug("Waiting for result from worker...")
-    task = cel.send_task('spflash.get', (version, ping))
+    task = cel.send_task('spflash.get', (version, ping), expires=10)
 
     try:
         pong = task.get(timeout=5)
