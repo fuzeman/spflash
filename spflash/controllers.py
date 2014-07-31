@@ -1,22 +1,17 @@
+from celery import Celery
 from flask import Flask, Response, abort, request, render_template
+import logging
 import os
 
+log = logging.getLogger(__name__)
+
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
-hostname = os.environ.get('HOSTNAME', 'localhost:5455')
-drivers = {}
+cel = Celery()
 
-try:
-    from pyvirtualdisplay import Display
-
-    from selenium import webdriver
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-
-    display = Display()
-    display.start()
-except ImportError:
-    pass
+cel.conf.update(
+    BROKER_URL=os.environ.get('CELERY_BROKER', 'redis://localhost:6379'),
+    CELERY_RESULT_BACKEND=os.environ.get('CELERY_BACKEND', 'redis://localhost:6379'),
+)
 
 
 @app.route('/<version>/get')
@@ -26,29 +21,15 @@ def get(version):
     if not ping:
         abort(400)
 
-    driver = get_driver(version)
-    print "Using driver: %s" % driver
+    log.debug("Waiting for result from worker...")
+    task = cel.send_task('spflash.get', (version, ping))
 
-    result = driver.execute_script("return document.getElementById('SPFBIn_2072_player').sp_run(arguments[0])", ping)
-    print 'result: "%s"' % result
+    pong = task.get(timeout=5)
+    log.debug('Ping: "%s", Pong: "%s"', ping, pong)
 
-    return Response(result, mimetype='text/plain')
+    return Response(pong, mimetype='text/plain')
 
 
 @app.route('/<version>/host')
 def host(version):
     return render_template('host.html', version=version)
-
-
-def get_driver(version):
-    if version not in drivers:
-        print "Constructing driver..."
-        drivers[version] = webdriver.PhantomJS()
-
-        print "Loading host page..."
-        drivers[version].get("http://%s/%s/host" % (hostname, version))
-
-        print "Waiting for page to finish loading..."
-        WebDriverWait(drivers[version], 10).until(EC.presence_of_element_located((By.ID, "SPFBIn_2072_player")))
-
-    return drivers[version]
