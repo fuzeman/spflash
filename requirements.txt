@@ -1,5 +1,3 @@
-celery
 flask
-
-selenium
-pyvirtualdisplay
+celery
+redis
