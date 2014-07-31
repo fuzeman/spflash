@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.exceptions import TimeoutError
 from flask import Flask, Response, abort, request, render_template
 import logging
 import os
@@ -24,8 +25,11 @@ def get(version):
     log.debug("Waiting for result from worker...")
     task = cel.send_task('spflash.get', (version, ping))
 
-    pong = task.get(timeout=5)
-    log.debug('Ping: "%s", Pong: "%s"', ping, pong)
+    try:
+        pong = task.get(timeout=5)
+        log.debug('Ping: "%s", Pong: "%s"', ping, pong)
+    except TimeoutError:
+        abort(503)
 
     return Response(pong, mimetype='text/plain')
 
@@ -33,3 +37,8 @@ def get(version):
 @app.route('/<version>/host')
 def host(version):
     return render_template('host.html', version=version)
+
+
+@app.errorhandler(503)
+def service_unavailable(e):
+    return Response('', mimetype='text/plain'), 503
