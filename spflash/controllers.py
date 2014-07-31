@@ -41,7 +41,7 @@ def host(version):
 def get_driver(version):
     if version not in drivers:
         print "Constructing driver..."
-        drivers[version] = webdriver.PhantomJS(executable_path="/home/deangardiner/phantomjs/bin/phantomjs")
+        drivers[version] = webdriver.PhantomJS()
 
         print "Loading host page..."
         drivers[version].get("http://localhost:5455/%s/host" % version)
